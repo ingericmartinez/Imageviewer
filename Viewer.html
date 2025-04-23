@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Image with Hotspots & Click Hint</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #e8e8e8; /* Slightly different background */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .interactive-image-container {
+            position: relative; /* Crucial for absolute positioning */
+            max-width: 900px; /* Limit container width */
+            width: 100%;
+            cursor: default;
+            border: 1px solid #bbb;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            overflow: hidden; /* Hide hint effect overflow */
+            border-radius: 8px; /* Slightly rounded corners */
+        }
+
+        .interactive-image-container img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 8px; /* Match container */
+        }
+
+        /* --- Hotspot Styling --- */
+        .hotspot {
+            position: absolute;
+            width: 28px; /* Slightly smaller */
+            height: 28px;
+            background-color: rgba(0, 122, 255, 0.7); /* Blue hotspot */
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            box-shadow: 0 0 12px rgba(0, 122, 255, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+            z-index: 3; /* Above hint effect */
+            transform: translate(-50%, -50%); /* Center hotspot exactly on coordinates */
+            animation: pulse-blue 2.5s infinite;
+        }
+
+        .hotspot:hover {
+            transform: translate(-50%, -50%) scale(1.2); /* Adjust transform on hover */
+            background-color: rgba(0, 122, 255, 0.9);
+        }
+
+        @keyframes pulse-blue {
+            0% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.6); }
+            70% { box-shadow: 0 0 0 12px rgba(0, 122, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); }
+        }
+
+        /* --- Hotspot Positioning (Adjust these percentages for your image) --- */
+        /* Note: Using transform: translate(-50%, -50%) means top/left are the center point */
+        .hotspot[data-spot="1"] { top: 45%; left: 50%; } /* Archway Center */
+        .hotspot[data-spot="2"] { top: 75%; left: 25%; } /* Left Bench Area */
+        .hotspot[data-spot="3"] { top: 60%; left: 80%; } /* Right Tree/Statue Area */
+
+        /* --- Click Hint Effect Styling --- */
+        .click-hint {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(0, 122, 255, 0.7); /* Blue hint */
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0); /* Start scaled down */
+            opacity: 0;
+            z-index: 2; /* Below hotspot, above image */
+            pointer-events: none; /* Prevent interaction */
+            /* Animation will be added via JS */
+        }
+
+        /* Animation class for the hint */
+        .click-hint.animate {
+            animation: ripple 0.6s ease-out;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: translate(-50%, -50%) scale(0.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.5); /* Expand outwards */
+                opacity: 0;
+            }
+        }
+
+
+        /* --- Info Box Styling --- */
+        .info-box {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 6px;
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, visibility 0s linear 0.3s, transform 0.3s ease;
+            max-width: calc(100% - 30px);
+        }
+
+        .info-box.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            transition: opacity 0.3s ease, visibility 0s linear 0s, transform 0.3s ease;
+        }
+
+        .info-box h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.15em;
+            color: #66ccff; /* Lighter blue title */
+        }
+        .info-box p {
+            margin-bottom: 0;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        .info-box .close-btn {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+        }
+         .info-box .close-btn:hover {
+             color: white;
+         }
+
+    </style>
+</head>
+<body>
+
+    <div class="interactive-image-container">
+        <img src="https://images.pexels.com/photos/13974996/pexels-photo-13974996.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+             alt="Jardín de San Marcos, Aguascalientes"
+             id="interactiveImage">
+
+        <div class="click-hint" id="clickHint"></div>
+
+        <div class="hotspot" data-spot="1" data-title="Arco Principal" data-info="Este es el icónico arco de entrada al Jardín de San Marcos, un punto central de la Feria Nacional de San Marcos.">1</div>
+        <div class="hotspot" data-spot="2" data-title="Bancas y Andadores" data-info="El jardín cuenta con numerosos andadores y bancas, ideales para descansar y disfrutar del ambiente.">2</div>
+        <div class="hotspot" data-spot="3" data-title="Vegetación y Estatuas" data-info="Rodeado de árboles y vegetación, el jardín también alberga varias estatuas y monumentos históricos.">3</div>
+
+        <div class="info-box" id="infoBox">
+            <button class="close-btn" id="closeInfoBox" aria-label="Close">&times;</button>
+            <h3 id="infoBoxTitle"></h3>
+            <p id="infoBoxText"></p>
+        </div>
+    </div>
+
+    <script>
+        // Get necessary DOM elements
+        const container = document.querySelector('.interactive-image-container');
+        const hotspots = document.querySelectorAll('.hotspot');
+        const infoBox = document.getElementById('infoBox');
+        const infoBoxTitle = document.getElementById('infoBoxTitle');
+        const infoBoxText = document.getElementById('infoBoxText');
+        const closeInfoBoxBtn = document.getElementById('closeInfoBox');
+        const clickHint = document.getElementById('clickHint'); // Get the hint element
+
+        // Function to show the info box
+        function showInfoBox(title, text) {
+            infoBoxTitle.textContent = title;
+            infoBoxText.textContent = text;
+            infoBox.classList.add('visible');
+        }
+
+        // Function to hide the info box
+        function hideInfoBox() {
+            infoBox.classList.remove('visible');
+        }
+
+        // Function to trigger the click hint animation
+        function triggerHint(hotspotElement) {
+            // Get position from the clicked hotspot
+            const top = hotspotElement.style.top;
+            const left = hotspotElement.style.left;
+
+            // Position the hint element
+            clickHint.style.top = top;
+            clickHint.style.left = left;
+
+            // Trigger the animation by adding the class
+            // Remove the class first to allow re-triggering if clicked quickly
+            clickHint.classList.remove('animate');
+            // void clickHint.offsetWidth; // Force reflow - sometimes needed
+            requestAnimationFrame(() => { // Use requestAnimationFrame for smoother start
+                 clickHint.classList.add('animate');
+            });
+        }
+
+        // Add click event listeners to each hotspot
+        hotspots.forEach(hotspot => {
+            hotspot.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevent click from bubbling up
+
+                // Retrieve data from the clicked hotspot's data attributes
+                const title = hotspot.dataset.title || 'Information';
+                const info = hotspot.dataset.info || 'No details available.';
+
+                // Show the info box
+                showInfoBox(title, info);
+
+                // Trigger the hint animation at the hotspot's location
+                triggerHint(hotspot);
+            });
+        });
+
+        // Add click listener to the close button
+        closeInfoBoxBtn.addEventListener('click', (event) => {
+             event.stopPropagation();
+             hideInfoBox();
+        });
+
+        // Optional: Close info box when clicking outside of it
+        container.addEventListener('click', (event) => {
+            if (event.target === container || event.target.id === 'interactiveImage') {
+                if (infoBox.classList.contains('visible')) {
+                    hideInfoBox();
+                }
+            }
+        });
+
+         // Optional: Close info box with the Escape key
+         document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && infoBox.classList.contains('visible')) {
+                hideInfoBox();
+            }
+        });
+
+        // Remove animation class from hint after it finishes
+        clickHint.addEventListener('animationend', () => {
+            clickHint.classList.remove('animate');
+        });
+
+    </script>
+
+</body>
+</html>
